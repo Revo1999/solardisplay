@@ -1,8 +1,8 @@
 import requests
 import os
 import json
-from time import sleep
-from weather_emoji import weather_icons
+import streamlit as st
+from weather_emoji import weather_icons  # Assuming weather_icons is correctly imported
 
 def save_location_data(city, country, lat, lon, file_path):
     location_data = {
@@ -54,38 +54,53 @@ def place_information():
         country = location_data['country']
         lat = location_data['latitude']
         lon = location_data['longitude']
-    else:
-        print("Setting up weather statistics")
-        email = input("Enter email (will be used once for longitude and lattitude api call for nominatim): ")
-        country = input("Enter country: ")
-        city = input("Enter city: ")
 
-        lat, lon = get_coordinates(city, country, email)
-        save_location_data(city, country, lat, lon, location_save_path)
-    
+        # Display loaded location data
+        st.subheader("Initial Setup")
+        st.write(f"City: {city}")
+        st.write(f"Country: {country}")
+        st.write(f"Latitude: {lat}")
+        st.write(f"Longitude: {lon}")
+
+    else:
+        st.subheader("Initial Setup")
+        email = st.text_input("Enter email (used for longitude and latitude API call): ")
+        country = st.text_input("Enter country: ")
+        city = st.text_input("Enter city: ")
+
+        if st.button("Enter"):
+            try:
+                lat, lon = get_coordinates(city, country, email)
+                save_location_data(city, country, lat, lon, location_save_path)
+            except ValueError as e:
+                st.error(f"Error: {e}")
+                return None, None, None, None
+
     return city, country, lat, lon
 
 def main():
     try:
+        st.title("Weather App")
         city, country, lat, lon = place_information()
-        print(f"Coordinates of {city}, {country}: Latitude = {lat}, Longitude = {lon}")
-        
-        weather_data = get_weather(lat, lon)
-        current_weather = weather_data.get('current_weather')
-        if current_weather:
-            print(f"Current weather in {city}, {country}:")
-            print(f"Temperature: {current_weather['temperature']} °C")
-            print(f"Wind Speed: {current_weather['windspeed']} km/h")
-            print(f"Wind Direction: {current_weather['winddirection']}°")
-            print(f"Weather Code: {weather_icons.get(current_weather['weathercode'], "❓")}")
-        else:
-            print("Weather data not available")
-    except ValueError as e:
-        print(e)
-    except Exception as e:
-        print(f"An error occurred: {e}")
 
-    print("done!")
+        if city and country and lat and lon:
+            weather_data = get_weather(lat, lon)
+            current_weather = weather_data.get('current_weather')
+
+            if current_weather:
+                st.subheader(f"Current weather in {city}, {country}:")
+                st.write(f"Temperature: {current_weather['temperature']} °C")
+                st.write(f"Wind Speed: {current_weather['windspeed']} km/h")
+                st.write(f"Wind Direction: {current_weather['winddirection']}°")
+                st.write(f"Weather Code: {weather_icons.get(current_weather['weathercode'], '❓')}")
+
+            else:
+                st.error("Weather data not available")
+
+    except ValueError as e:
+        print(f"error: {e}")
+    except Exception as e:
+        print(f"error: {e}")
 
 if __name__ == "__main__":
     main()
